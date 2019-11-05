@@ -10,7 +10,7 @@ def shutdown_server():
 
 @app.route('/')
 def authorize():
-        print request.args['oauth_verifier']
+        print(request.args['oauth_verifier'])
         shutdown_server()
         return "Thank you, you can close the tab"
 
