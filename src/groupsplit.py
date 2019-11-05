@@ -166,6 +166,7 @@ class CsvSettings():
         self.date_col = eval(input("Which column has the date?"))
         self.amount_col = eval(input("Which column has the amount?"))
         self.desc_col = eval(input("Which column has the description?"))
+        self.details_col = eval(input("Which column has the detail?"))
         self.has_title_row = input("Does first row have titles? [Y/n]").lower() != 'n'
         self.newest_transaction = ''
         while True:
@@ -232,7 +233,8 @@ class SplitGenerator():
             if float(r[self.csv.amount_col]) < 0:
                 self.transactions.append({"date": datetime.strftime(datetime.strptime(r[self.csv.date_col], csvDateFormat), "%Y-%m-%dT%H:%M:%SZ"),
                                           "amount": -1 * Money(r[self.csv.amount_col], self.csv.local_currency),
-                                          "desc": re.sub('\s+',' ', r[self.csv.desc_col])}
+                                          "desc": re.sub('\s+',' ', r[self.csv.desc_col]),
+                                          "details": re.sub('\s+',' ', r[self.csv.details_col]}
                 )
 
     def get_group(self, name):
@@ -298,6 +300,7 @@ class SplitGenerator():
             "cost": s["amount"].amount,
             "description": s["desc"],
             "date": s["date"],
+            "details": s["details"],
             "group_id": self.gid,
             "currency_code": self.csv.local_currency,
             "users__0__user_id": self.api.get_id(),
