@@ -167,6 +167,7 @@ class CsvSettings():
         self.amount_col = eval(input("Which column has the amount?"))
         self.desc_col = eval(input("Which column has the description?"))
         self.details_col = eval(input("Which column has the detail?"))
+        self.payer_col = eval(input("Which column says who pays?"))
         self.has_title_row = input("Does first row have titles? [Y/n]").lower() != 'n'
         self.newest_transaction = ''
         while True:
@@ -193,6 +194,7 @@ class CsvSettings():
 
 
 class SplitGenerator():
+
     def __init__(self, options, args, api):
         csv_file = args[0]
         group_name = args[1]
@@ -212,11 +214,33 @@ class SplitGenerator():
         if self.csv.has_title_row:
             self.rows = self.rows[1:]
 
+        self.get_person_names()
         self.make_transactions()
         self.csv.record_newest_transaction(self.rows)
         self.get_group(group_name)
         self.splits = []
         self.ask_for_splits()
+
+    def get_person_names(self):
+        if os.path.isfile("people.json"):
+            with open("people.json", 'rb') as json_file:
+                people = json.load(json_file)
+                person1 = people['1']
+                person2 = people['2']
+        else:
+            with open("people.json", 'wb') as json_file:
+                json.dump({'1':'person 1 here',
+                           '2':'person 2 here'}, json_file)
+            exit("Say the names of person 1 and 2, for the splits."+
+                 "place them in people.json")
+        self.person1 = person1
+        self.person2 = person2
+
+        print("-" * 40)
+        print("People")
+        print("-" * 40)
+        print(self.person1)
+        print(self.person2)
 
     def make_transactions(self):
         """
@@ -234,7 +258,8 @@ class SplitGenerator():
                 self.transactions.append({"date": datetime.strftime(datetime.strptime(r[self.csv.date_col], csvDateFormat), "%Y-%m-%dT%H:%M:%SZ"),
                                           "amount": -1 * Money(r[self.csv.amount_col], self.csv.local_currency),
                                           "desc": re.sub('\s+',' ', r[self.csv.desc_col]),
-                                          "details": re.sub('\s+',' ', r[self.csv.details_col]}
+                                          "details": re.sub('\s+',' ', r[self.csv.details_col]),
+                                          "payer": re.sub('\s+',' ', r[self.csv.payer_col])}
                 )
 
     def get_group(self, name):
@@ -280,7 +305,7 @@ class SplitGenerator():
         print("-" * 40)
         print("Your Chosen Splits")
         print("-" * 40)
-        print(tabulate( self.splits, headers={"date":"Date", "amount":"Amount", "desc":"Description"} ))
+        print(tabulate( self.splits, headers={"date":"Date", "amount":"Amount", "desc":"Description", "details":"Detail","payer":"Payer"} ))
 
         # Kill program if user doesn't want to submit splits
         assert self.options.yes or input( "Confirm submission? [y/N]" ).lower() == 'y', "User canceled submission"
@@ -294,7 +319,22 @@ class SplitGenerator():
         s = self.splits[index]
         one_cent = Money("0.01", self.csv.local_currency)
         num_people = len(self.members) + 1
-        base, extra = split(s['amount'], num_people)
+
+        """
+        Decide if person 1 (split between 1 person), or person 2 is paying exclusively, or it is shared evenly
+        """
+        if s["payer"] == self.person1:
+            base_amount = s['amount'].amount
+            shared = 0
+        elif s["payer"] == self.person2:
+            base_amount = 0
+            shared = s['amount'].amount
+        else:
+            base, extra = split(s['amount'], num_people)
+            base_amount = base.amount
+            shared = (base + one_cent).amount if extra.amount > 0 else base.amount
+            extra -= one_cent
+
         params = {
             "payment": 'false',
             "cost": s["amount"].amount,
@@ -305,13 +345,12 @@ class SplitGenerator():
             "currency_code": self.csv.local_currency,
             "users__0__user_id": self.api.get_id(),
             "users__0__paid_share": s["amount"].amount,
-            "users__0__owed_share": base.amount,
+            "users__0__owed_share": base_amount,
         }
         for i in range(len(self.members)):
             params['users__%s__user_id' % (i+1)] = self.members[i]
             params['users__%s__paid_share' % (i+1)] = 0
-            params['users__%s__owed_share' % (i+1)] = (base + one_cent).amount if extra.amount > 0 else base.amount
-            extra -= one_cent
+            params['users__%s__owed_share' % (i+1)] = shared
         paramsStr = urllib.parse.urlencode(params)
         return "https://secure.splitwise.com/api/v3.0/create_expense?%s" % (paramsStr)
 
