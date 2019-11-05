@@ -1,4 +1,4 @@
-# splitwise-csv [![Build Status]
+# splitwise-csv
 Upload expenses to splitwise from a csv file and splitting them evenly between a predefined group. 
 
 ## API Keys
