@@ -236,12 +236,6 @@ class SplitGenerator():
         self.person1 = person1
         self.person2 = person2
 
-        print("-" * 40)
-        print("People")
-        print("-" * 40)
-        print(self.person1)
-        print(self.person2)
-
     def make_transactions(self):
         """
         Consume the row data from the csv file into a format which is easy to upload to splitwise
@@ -299,8 +293,14 @@ class SplitGenerator():
         print("Found {0} transactions".format(len(self.transactions)))
         i = 0
         for t in self.transactions:
+            """
+            this was the default, to check every transacion one by one
             if self.options.yes or input("%d: %s at %s $%s. Split? [y/N]" % (i, t['date'], t['desc'], t['amount'])).lower() == 'y':
-                self.splits.append(t)
+            self.splits.append(t)
+            """
+
+            # alternative, where we just do them all at once
+            self.splits.append(t)
 
         print("-" * 40)
         print("Your Chosen Splits")
