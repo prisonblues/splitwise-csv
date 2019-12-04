@@ -357,10 +357,6 @@ class SplitGenerator():
             params['users__%s__owed_share' % (i+1)] = shared
         paramsStr = urllib.parse.urlencode(params, quote_via=quote_plus)
         return "https://secure.splitwise.com/api/v3.0/create_expense?%s" % (paramsStr)
-"""
-Doesn't work because it converts the \n into a proper new line in the URLencode step"  Needs to be escaped out again, so it can be put through simply as \n
-"""
-
 
 def main():
     usage = "groupsplit.py [options] <path to csv file> <splitwise group name>"
