@@ -17,6 +17,7 @@ from money import Money
 from pprint import pprint
 from datetime import datetime
 from tabulate import tabulate
+from urllib.parse import urlencode, quote_plus, quote
 
 LOGGING_DISABELED = 100
 log_levels = [LOGGING_DISABELED, logging.CRITICAL, logging.ERROR,
@@ -340,19 +341,25 @@ class SplitGenerator():
             "cost": s["amount"].amount,
             "description": s["desc"],
             "date": s["date"],
-            "details": s["details"],
+            "details": bytes(s["details"],"utf-8").decode("unicode_escape"),
             "group_id": self.gid,
             "currency_code": self.csv.local_currency,
             "users__0__user_id": self.api.get_id(),
             "users__0__paid_share": s["amount"].amount,
             "users__0__owed_share": base_amount,
         }
+        params2 = {
+            "details": bytes(s["details"],"utf-8").decode("unicode_escape")
+        }
         for i in range(len(self.members)):
             params['users__%s__user_id' % (i+1)] = self.members[i]
             params['users__%s__paid_share' % (i+1)] = 0
             params['users__%s__owed_share' % (i+1)] = shared
-        paramsStr = urllib.parse.urlencode(params)
+        paramsStr = urllib.parse.urlencode(params, quote_via=quote_plus)
         return "https://secure.splitwise.com/api/v3.0/create_expense?%s" % (paramsStr)
+"""
+Doesn't work because it converts the \n into a proper new line in the URLencode step"  Needs to be escaped out again, so it can be put through simply as \n
+"""
 
 
 def main():
